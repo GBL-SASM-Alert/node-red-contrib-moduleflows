@@ -4,7 +4,7 @@ This module provides several nodes that can **easily customize** a flow by **mod
 
 ## Description
 
-Using the **moduleflows** module, you can divide flows into modular units, making it easy to manage and reuse them. The moduleflows offers three key functionallities
+Using the **moduleflows** module, you can divide flows into modular units, making it easy to manage and reuse them. The moduleflows offers three key functionalities
 
 1. **Modularization** : It allows you to break down your flows into smaller, self-contained modules, making it easier to manage and understand complex workflows. You can determine which property to use within the “moduleflows in” node, and you have the flexibility to modify and apply that property within the "moduleflows" node.
 
@@ -97,7 +97,7 @@ This tool can manage the moduleflows in the local directory. You can use the mod
 
 ![그림2.png](img/%25EA%25B7%25B8%25EB%25A6%25BC2.png)
 
-**① search bar**: It allows to search moduleflows in local directory by name and description. 
+**① search bar**: It allows to search moduleflows in local directory by name and description.
 
 **② delete button**: It allows to delete the selected moduleflows not only in the management tool but also in local directory.
 
@@ -139,12 +139,12 @@ This tool can manage the moduleflows in the local directory. You can use the mod
 
 - Use the moduleflows manage tab within Node-RED to save your modules for future use.
 - To save a module:
-    - Select the **ModuleFlows in Current Tab**.
-    - Locate the module you want to save and click **Save in Local**.
+  - Select the **ModuleFlows in Current Tab**.
+  - Locate the module you want to save and click **Save in Local**.
 - To reuse a saved module:
-    - Drag a **moduleflows** at tab into your flow.
-    - In the ModuleFlows in Your Local you can choose the saved module from the list.
-    - Configure the node's properties as needed.
+  - Drag a **moduleflows** at tab into your flow.
+  - In the ModuleFlows in Your Local you can choose the saved module from the list.
+  - Configure the node's properties as needed.
 
 ![Untitled](img/Untitled%204.png)
 
@@ -183,5 +183,4 @@ Copyright Samsung Automation Studio Team under the [Apache 2.0 license](https:/
 - [Node-RED node-red-contrib-reusable-flows](https://flows.nodered.org/node/node-red-contrib-reusable-flows)
 - [Node-RED node-red-contrib-flow-manager](https://flows.nodered.org/node/node-red-contrib-flow-manager)
 - [SamsungAutomationStudio Github Repository](https://github.com/Samsung/SamsungAutomationStudio)
-    
-    ---
+  ***
