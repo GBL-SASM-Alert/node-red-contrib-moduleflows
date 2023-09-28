@@ -1,5 +1,5 @@
 {
-	"name": "@GBL-SASM-Alert/node-red-contrib-moduleflows",
+	"name": "@gbl-sasm-alert/node-red-contrib-moduleflows",
 	"version": "1.0.1",
 	"description": "Flow Modularization Nodes for Node-RED",
 	"keywords": [
