@@ -1,0 +1,35 @@
+{
+	"name": "@GBL-SASM-Alert/node-red-contrib-moduleflows",
+	"version": "1.0.1",
+	"description": "Flow Modularization Nodes for Node-RED",
+	"keywords": [
+		"node-red",
+		"modularization",
+		"submodule",
+		"module",
+		"customization",
+		"module manage",
+		"configurable"
+	],
+	"license": "Apache 2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/GBL-SASM-Alert/node-red-contrib-moduleflows"
+	},
+	"author": "GBL-SASM-Alert",
+	"node-red": {
+		"nodes": {
+			"moduleflows": "nodes/moduleflows.js",
+			"submoduleflows": "nodes/submoduleflows.js",
+			"global-moduleflows-manage-tool": "nodes/global-moduleflows-manage-tool.js",
+			"moduleflows-manage-tool": "nodes/moduleflows-manage-tool.js"
+		}
+	},
+	"dependencies": {
+		"fs-extra": "^11.1.1",
+		"mustache": "^4.0.0"
+	},
+	"bugs": {
+		"url": "https://github.com/GBL-SASM-Alert/node-red-contrib-moduleflows/issues"
+	}
+}

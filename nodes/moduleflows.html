@@ -1,0 +1,711 @@
+<style>
+  .description-box {
+    width: 100%;
+    margin: 0px 0px 12px 0px;
+    padding: 5px;
+    position: relative;
+    border-left: 5px solid #333333;
+  }
+  .property-description-box {
+    width: 100%;
+    margin: 12px 0px 12px 0px;
+    padding: 5px;
+    position: relative;
+    border-left: 5px solid #333333;
+  }
+  .error-box {
+    font-size: 8pt;
+    color: red;
+  }
+  #actionflows-name {
+    display: flex;
+  }
+  #node-name-input-box {
+    display: block;
+    width: 100%;
+  }
+  .property-container {
+    width: 100%;
+    padding: 8px 0;
+  }
+  .property-inner {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+  }
+  div.property-list {
+    border: solid 1px #aaa;
+    margin-bottom: 8px;
+  }
+  textarea.property-description {
+    width: 90%;
+    height: 8rem;
+    resize: none;
+    margin: 0 5%;
+  }
+  div.toggle-button {
+    border: solid 1px #aaa;
+    background-color: #ccc;
+    cursor: pointer;
+    padding: 8px 8px;
+  }
+  #node-id {
+    display: none;
+  }
+  #node-name {
+    display: none;
+  }
+  #node-property-name {
+    width: 40%;
+    word-break: break-all;
+    padding: 0 5px;
+  }
+  #node-property-value {
+    width: 50%;
+    word-break: break-all;
+    padding: 0 5px;
+  }
+  .property-checkbox {
+    width: 10%;
+    max-height: 15px;
+    max-width: 10%;
+  }
+  #checkbox-description {
+    padding-left: 8px;
+    margin-bottom: 15px;
+    color: #737373;
+  }
+</style>
+<script type="text/javascript">
+  RED.nodes.registerType("moduleflows", {
+    category: "GBL-SASM-Alert",
+    color: "#FFA07A",
+    defaults: {
+      name: { value: "moduleflows" },
+      moduleId: { value: "" },
+      submoduleId: { value: "" },
+      properties: { value: [] }
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: function () {
+      return "moduleflows_white.png";
+    },
+    label: function () {
+      return this.name || "moduleflows";
+    },
+    //open editor box
+    oneditprepare: function () {
+      //###0. init value
+      $("#moduleflows-node-name").val(this.name);
+
+      //###1. Dynamic module select
+      //select element
+      let moduleSelectElem = $("#module-select");
+      let descriptionMap = new Map(); //node-id : description
+
+      //1.1 init module options
+      let currentTab = RED.workspaces.active();
+      RED.nodes.eachNode(function (node) {
+        if (node.type === "moduleflows_in" && node.z == currentTab) {
+          let option = `<option value="${node.id}" title="${node.info}">${node.name}</option>`;
+          moduleSelectElem.append(option);
+
+          //mapping description
+          descriptionMap.set(node.id, node.info);
+        }
+      });
+
+      //1.2 default module option
+      if (this.moduleId) {
+        moduleSelectElem.val(this.moduleId).prop("selected", true);
+      } else {
+        $("#module-select option:eq(0)").prop("selected", true);
+        this.moduleId = $("#module-select").val();
+      }
+      $("#module-description").text(descriptionMap.get(this.moduleId));
+
+      //###2. init submodule select
+      let submoduleSelectElem = $("#submodule-select");
+
+      let initSubmoduleOptions = function (node) {
+        let option = `<option value="${node.id}" title="${node.info}">${node.name}</option>`;
+        submoduleSelectElem.append(option);
+
+        //mapping description
+        descriptionMap.set(node.id, node.info);
+      };
+
+      //2.2 default submodule option
+      if (this.moduleId) {
+        let isSubmoduleExist = false;
+        RED.nodes
+          .getAllDownstreamNodes(RED.nodes.node(this.moduleId))
+          .forEach(node => {
+            if (node.type === "submoduleflows") {
+              initSubmoduleOptions(node);
+              isSubmoduleExist = true;
+            }
+          });
+        if (this.submoduleId) {
+          submoduleSelectElem.val(this.submoduleId).prop("selected", true);
+        } else {
+          $("#submodule-select option:eq(0)").prop("selected", true);
+        }
+        $("#submodule-description").text(descriptionMap.get(this.submoduleId));
+
+        if (!isSubmoduleExist) $("#submodule").css("display", "none");
+      }
+
+      //###2.3 init module properties inputs
+      let propertySelectElem = $("#property-input");
+
+      let initPropertyInputs = function (inNode) {
+        inNode.properties.forEach(property => {
+          let nodeOfModule = RED.nodes.node(property.nodeId);
+          if (nodeOfModule.id === property.nodeId) {
+            let newDiv = $("<div>");
+            newDiv.addClass("form-row");
+
+            let label = $("<label>").attr("for", "node-input-scope");
+            label.append('<i class="fa fa-gear"> </i>');
+            label.append("<span> " + property.propertyName + "</span>");
+
+            let input = $("<input>")
+              .val(
+                typeof nodeOfModule[property.propertyName] === "object"
+                  ? JSON.stringify(nodeOfModule[property.propertyName])
+                  : nodeOfModule[property.propertyName]
+              )
+              .attr("type", "text")
+              .attr("name", property.propertyName)
+              .attr("nodeId", property.nodeId);
+
+            let descriptionDev = $(
+              '<div id="description-box" class="property-description-box">'
+            ).text(
+              property.description
+                ? property.description
+                : "property lacks a description"
+            );
+            newDiv.append(label, input, descriptionDev);
+            propertySelectElem.append(newDiv);
+          }
+        });
+      };
+
+      //2.4 default property inputs
+      if (this.moduleId) {
+        let inNode = RED.nodes.node(this.moduleId);
+        initPropertyInputs(inNode);
+      }
+
+      //###3. Event
+      let node = this;
+      $("#module-select").on("change", function () {
+        let changedModuleId = $("#module-select").val();
+
+        //3.1 module description
+        $("#module-description").text(descriptionMap.get(changedModuleId));
+
+        //3.2 Dynamic submodule select
+        //clear options
+        $("select#submodule-select option").remove();
+        //get new link and init options
+        let isSubmoduleExist = false;
+
+        RED.nodes
+          .getAllDownstreamNodes(RED.nodes.node(changedModuleId))
+          .forEach(node => {
+            if (node.type === "submoduleflows") {
+              initSubmoduleOptions(node);
+              isSubmoduleExist = true;
+            }
+          });
+
+        if (!isSubmoduleExist) $("#submodule").css("display", "none");
+        else $("#submodule").css("display", "block");
+        //default first element selected
+        $("#submodule-select option:eq(0)").prop("selected", true);
+        $("#submodule-description").text(
+          descriptionMap.get($("#submodule-select option:eq(0)").val())
+        );
+
+        //3.3 Dynamic property inputs
+        $("div#property-input label").remove();
+        $("div#property-input input").remove();
+        $("div#property-input div").remove();
+        $("div#property-input br").remove();
+        //get new link and init options
+        let changedNode = RED.nodes.node(changedModuleId);
+        initPropertyInputs(changedNode);
+      });
+
+      $("#submodule-select").on("change", function () {
+        let changedSubmoduleId = $("#submodule-select").val();
+        $("#submodule-description").text(
+          descriptionMap.get(changedSubmoduleId)
+        );
+      });
+    },
+    oneditsave: function () {
+      var node = this;
+      //name save
+      node.name = $("#moduleflows-node-name").val();
+
+      //module save
+      node.moduleId = $("#module-select").val();
+
+      //submodule save
+      node.submoduleId = $("#submodule-select").val();
+
+      //properties save and customize other module nodes
+      if (node.moduleId) {
+        let inNode = RED.nodes.node(node.moduleId);
+        node.properties = inNode.properties;
+
+        let inputs = $("#property-input input");
+        node.properties.forEach(property => {
+          let nodeOfModule = RED.nodes.node(property.nodeId);
+          inputs.each(function () {
+            let moduleNodeId = $(this).attr("nodeId");
+            let inputName = $(this).attr("name");
+            let inputValue = $(this).val();
+
+            if (property.nodeId === moduleNodeId) {
+              nodeOfModule[inputName] =
+                typeof nodeOfModule[inputName] === "object"
+                  ? JSON.parse(inputValue)
+                  : inputValue;
+              RED.nodes.add(nodeOfModule);
+
+              property[inputName] = inputValue;
+            }
+          });
+        });
+      }
+    },
+    oneditcancle: function () {}
+  });
+</script>
+
+<script type="text/javascript">
+  RED.nodes.registerType("moduleflows_in", {
+    category: "GBL-SASM-Alert",
+    color: "#FA8072",
+    defaults: {
+      info: { value: "Describe your module action here." },
+      name: {
+        value: "moduleflows in",
+        required: true
+      },
+      errorMsg: { value: "" },
+      duplicatedError: { value: false },
+      properties: { value: [] }
+    },
+    inputs: 0,
+    outputs: 1,
+    icon: function () {
+      return "moduleflows_white.png";
+    },
+    label: function () {
+      return this.name || "moduleflows in";
+    },
+    //open editor box
+    oneditprepare: function () {
+      $(document).ready(function () {
+        // initially, hide property list
+        $(".property-list").hide();
+
+        // click event handler for toggle-button
+        $("div.toggle-button").click(function () {
+          $(this.nextSibling).toggle();
+        });
+
+        // input window appear when click the checkbox
+        $(".property-checkbox").change(function () {
+          if ($(this).is(":checked")) {
+            $(this.parentNode.parentNode).append(
+              $("<textarea>")
+                .attr("class", "property-description")
+                .attr(
+                  "placeholder",
+                  "Please write a description for the property."
+                )
+            );
+          } else {
+            $(this.parentNode.parentNode).children()[1].remove();
+          }
+        });
+      });
+
+      // get all downstream nodes after moduleflows_in node without moduleflows-out node
+      const moduleFlows = RED.nodes
+        .getAllDownstreamNodes(this)
+        .filter(
+          elem =>
+            elem.type !== "moduleflows_out" && elem.type !== "submoduleflows"
+        );
+      // filter required info from all node's property
+      const moduleProperties = moduleFlows.map(node => {
+        return {
+          nodeId: node.id,
+          nodeName: node.name || node.type,
+          properties: Object.keys(node._def.defaults).map(key => [
+            key,
+            node[key]
+          ])
+        };
+      });
+
+      const $nodeCheckboxContainer = $("#node-checkbox-container");
+      if (moduleProperties) {
+        const $nodesTitle = $("<h3>").text("Nodes in current module");
+        $nodeCheckboxContainer.prepend($nodesTitle);
+      }
+      const nodeCheckboxList = $("#node-checkbox-list");
+      moduleProperties.forEach(element => {
+        // add the node name to toggle properties.
+        const $node = $("<div>").attr("class", "form-row");
+        const $nodeName = $("<div>")
+          .attr("class", "toggle-button")
+          .html(element.nodeName + " &#9660;");
+        const $propertyList = $("<div>").attr("class", "property-list");
+        const $propertiesTitle = $("<h3>")
+          .text(`Properties of ${element.nodeName} node`)
+          .css("padding-left", "8px");
+        const $description = $("<div>")
+          .attr("id", "checkbox-description")
+          .text(
+            `Select properties of ${element.nodeName} node that need to be modified.`
+          );
+        const $propertyInner = $("<div>").attr("class", "property-inner");
+        const $checkbox = $("<span>").attr("class", "property-checkbox");
+        const $nodeProperty = $("<span>")
+          .attr("id", "node-property-name")
+          .text("Property Name")
+          .css("font-weight", "800");
+        const $nodeValue = $("<span>")
+          .attr("id", "node-property-value")
+          .text("Given Value")
+          .css("font-weight", "800");
+        const $container = $("<div>")
+          .css("border", "solid 1px #C9C9C9")
+          .css("margin", "5px");
+        $propertyInner
+          .append($checkbox)
+          .append($nodeProperty)
+          .append($nodeValue);
+        $container.append($propertyInner);
+        $propertyList
+          .append($propertiesTitle)
+          .append($description)
+          .append($container);
+        $node.append($nodeName).append($propertyList);
+        nodeCheckboxList.append($node);
+
+        element.properties.forEach((property, index) => {
+          // add checkbox of each node's properties
+          const $propertyContainer = $("<div>").attr(
+            "class",
+            "property-container"
+          );
+          if (index % 2 == 0) {
+            $propertyContainer.css("background-color", "#F6F9FF");
+          }
+          const $propertyInner = $("<div>").attr("class", "property-inner");
+
+          const $nodeId = $("<span>")
+            .attr("id", "node-id")
+            .text(element.nodeId);
+          const $nodeName = $("<span>")
+            .attr("id", "node-name")
+            .text(element.nodeName);
+          const $checkBox = $("<input>")
+            .attr("type", "checkbox")
+            .attr("class", "property-checkbox");
+          const $nodeProperty = $("<span>")
+            .attr("id", "node-property-name")
+            .text(property[0]);
+          const $nodeValue = $("<span>")
+            .attr("id", "node-property-value")
+            .text(
+              typeof property[1] === "object"
+                ? JSON.stringify(property[1])
+                : property[1]
+            );
+
+          $propertyInner
+            .append($nodeId)
+            .append($nodeName)
+            .append($checkBox)
+            .append($nodeProperty)
+            .append($nodeValue);
+
+          $propertyContainer.append($propertyInner);
+          $container.append($propertyContainer);
+
+          // If there are existing properties saved
+          // check the checkbox and fill in the description in the textarea.
+          const targetProperty = this.properties.find(
+            propertyObject =>
+              propertyObject.nodeId === element.nodeId &&
+              propertyObject.propertyName === property[0]
+          );
+          if (targetProperty) {
+            $checkBox.prop("checked", true);
+            const $textarea = $("<textarea>")
+              .attr("class", "property-description")
+              .attr(
+                "placeholder",
+                "Please write a description for the property."
+              )
+              .val(targetProperty.description);
+            $propertyContainer.append($textarea);
+          }
+        });
+      });
+
+      // initialize properties
+      this.properties = [];
+
+      //###0. init value
+      $("#module-in-node-name").val(this.name);
+
+      this.editor = RED.editor.createEditor({
+        id: "node-description-editor",
+        mode: "ace/mode/markdown",
+        value: $("#node-input-info").val()
+      });
+
+      //### 1. Duplicated module name
+      //1.1 all moduleflows in node in current tab except this node
+      let currentTab = RED.workspaces.active();
+      let allModuleNames = new Set();
+      RED.nodes.eachNode(node => {
+        if (
+          node.type === "moduleflows_in" &&
+          node.z == currentTab &&
+          node.id != this.id //except this node
+        ) {
+          allModuleNames.add(node.name);
+        }
+      });
+
+      //1.2 Event: change name
+      let displayMsg = (msg, color) => {
+        $("#module-in-node-error-box").text(msg);
+        $("#module-in-node-error-box").css("color", color);
+      };
+
+      let checkDuplicatedname = name => {
+        //check duplicated name
+        if (!allModuleNames.has(name)) {
+          //ok
+          this.errorMsg = "Available name";
+          this.duplicatedError = false;
+          displayMsg(this.errorMsg, "green");
+        } else {
+          //error msg
+          this.errorMsg = "Duplicated name";
+          this.duplicatedError = true;
+          displayMsg(this.errorMsg, "red");
+        }
+      };
+      checkDuplicatedname(this.name);
+
+      let thiz = this;
+      $("#module-in-node-name").on("input", event => {
+        let newName = event.target.value;
+
+        //1.1 all moduleflows in node in current tab except this node
+        let currentTab = RED.workspaces.active();
+        RED.nodes.eachNode(node => {
+          if (
+            node.type === "moduleflows_in" &&
+            node.z == currentTab &&
+            node.id != thiz.id //except this node
+          ) {
+            if (node.name === newName) {
+              //same name => change node duplicatedError
+              node.errorMsg = "Duplicated name";
+              node.duplicatedError = true;
+
+              thiz.errorMsg = "Duplicated name";
+              thiz.duplicatedError = true;
+              displayMsg(thiz.errorMsg, "red");
+            } else {
+              node.errorMsg = "Available name";
+              node.duplicatedError = false;
+
+              //ok
+              thiz.errorMsg = "Available name";
+              thiz.duplicatedError = false;
+              displayMsg(thiz.errorMsg, "green");
+            }
+          }
+        });
+
+        checkDuplicatedname(newName);
+      });
+    },
+    oneditsave: function () {
+      var node = this;
+      //name save
+      node.name = $("#module-in-node-name").val();
+
+      //description save
+      $("#node-input-info").val(this.editor.getValue());
+
+      // save properties
+      $(".property-checkbox").each(function () {
+        if ($(this).is(":checked")) {
+          const nodeId = $(this).parent().children()[0].innerText;
+          const nodeName = $(this).parent().children()[1].innerText;
+          const propertyName = $(this).parent().children()[3].innerText;
+          const description = $(this).parent().parent().children()[1].value;
+          node.properties.push({
+            nodeId: nodeId,
+            nodeName: nodeName,
+            propertyName: propertyName,
+            description: description
+          });
+        }
+      });
+      this.editor.destroy();
+      delete node.editor;
+    },
+    oneditcancle: function () {
+      this.editor.destroy();
+      delete this.editor;
+    }
+  });
+</script>
+
+<script type="text/javascript">
+  RED.nodes.registerType("moduleflows_out", {
+    category: "GBL-SASM-Alert",
+    color: "#1E90FF",
+    defaults: {
+      name: { value: "moduleflows out" }
+    },
+    inputs: 1,
+    outputs: 0,
+    icon: function () {
+      return "moduleflows_white.png";
+    },
+    label: function () {
+      return this.name || "moduleflows out";
+    },
+    //open editor box
+    oneditprepare: function () {
+      //###0. init value
+      $("#moduleflows-out-node-name").val(this.name);
+    },
+    oneditsave: function () {
+      var node = this;
+      //name save
+      node.name = $("#moduleflows-out-node-name").val();
+
+      this.editor.destroy();
+      delete node.editor;
+    },
+    oneditcancle: function () {
+      this.editor.destroy();
+      delete this.editor;
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="moduleflows">
+  <div class="form-row">
+    <label for="moduleflows-node-name"><i class="icon-tag"></i> Name</label>
+    <input type="text" id="moduleflows-node-name" placeholder="Name" />
+  </div>
+  <!--module-->
+  <div>
+    <div class="form-row">
+      <label for="node-input-scope">
+        <i class="fa fa-random"></i>
+        <span>Module</span></label
+      >
+      <select id="module-select"></select>
+    </div>
+    <div id="module-description" class="description-box"></div>
+  </div>
+  <!--submodule-->
+  <div id="submodule">
+    <div class="form-row">
+      <label for="node-input-scope">
+        <i class="fa fa-random"></i> <span>SubModule</span>
+      </label>
+      <select id="submodule-select"></select>
+    </div>
+    <div id="submodule-description" class="description-box"></div>
+  </div>
+  <hr width="100%" color="black" size="4" />
+  <!--module property-->
+  <div id="property-input">
+    <div class="form-row"></div>
+  </div>
+</script>
+
+<script type="text/html" data-template-name="moduleflows_in">
+  <div class="form-row" id="actionflows-name">
+    <label for="module-in-node-name" id="node-name-label"
+      ><i class="icon-tag"></i> Name</label
+    >
+    <div id="node-name-input-box">
+      <input type="text" id="module-in-node-name" placeholder="Name" />
+      <div id="module-in-node-error-box" class="error-box"></div>
+    </div>
+  </div>
+
+  <!-- moduleflows in : module description -->
+  <!-- markdown options -->
+  <div class="form-row" style="margin-bottom: 0px;">
+    <label for="node-input-info">Description</label>
+    <a
+      href="https://guides.github.com/features/mastering-markdown/"
+      target="_blank"
+      style="font-size: 0.8em; float: right;"
+      >markdown</a
+    >
+    <input type="hidden" id="node-input-info" autofocus="autofocus" />
+  </div>
+  <!-- editor box -->
+  <div class="form-row node-text-editor-row">
+    <div
+      style="height: 250px; min-height:150px;"
+      class="node-text-editor"
+      id="node-description-editor"
+    ></div>
+  </div>
+  <!-- nodes list with config -->
+  <div id="node-checkbox-container">
+    <div id="node-checkbox-list"></div>
+  </div>
+</script>
+
+<script type="text/html" data-template-name="moduleflows_out">
+  <div class="form-row" id="actionflows-name">
+    <label for="moduleflows-out-node-name"><i class="icon-tag"></i> Name</label>
+    <input type="text" id="moduleflows-out-node-name" placeholder="Name" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moduleflows">
+  <div>
+    <p>This node allows you to select and reuse the flow between "module in" and "module out" as a single module. Additionally, you can customize the properties of nodes within "moduleflows" from this node.</p>
+  </div>
+</script>
+<script type="text/html" data-help-name="moduleflows_in">
+  <div>
+    <p>This node is the starting point for "moduleflows," allowing you to provide the name and description of the module. Additionally, you can choose specific node properties within this flow that you wish to customize and provide descriptions for them.</p>
+  </div>
+</script>
+<script type="text/html" data-help-name="moduleflows_out">
+  <div>
+    <p>This node is the end of the “moduleflows”.</p>
+  </div>
+</script>
