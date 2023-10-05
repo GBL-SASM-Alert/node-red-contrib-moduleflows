@@ -2,7 +2,7 @@ const { name } = require("mustache");
 
 module.exports = function (RED) {
   let MappingNodes = {};
-  /**
+  /*
    * Initialize the mapping functionality.
    *
    * This function initializes a mapping feature in a Node-RED flow. It sets up a global MappingNodes object that allows for getting and setting properties within the mapping.
