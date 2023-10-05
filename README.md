@@ -22,7 +22,7 @@ Using the **moduleflows** module, you can divide flows into modular units, makin
 
 ![Untitled](img/Untitled%205.png)
 
-1. **Isolation** : moduleflows module have the capability to conceal the underlying logic of moduleflows in and moduleflows out nodes, allowing you to exclusively manipulate the properties within the "moduleflows" node. This enables you to create the desired flow by simply modifying the properties of the "moduleflows" node without exposing the inner workings of the associated modules
+3. **Isolation** : moduleflows module have the capability to conceal the underlying logic of moduleflows in and moduleflows out nodes, allowing you to exclusively manipulate the properties within the "moduleflows" node. This enables you to create the desired flow by simply modifying the properties of the "moduleflows" node without exposing the inner workings of the associated modules
 
 ![Untitled](img/Untitled%206.png)
 
