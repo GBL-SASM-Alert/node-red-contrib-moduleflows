@@ -6,7 +6,7 @@ This module provides several nodes that can **easily customize** a flow by **mod
 
 Using the **moduleflows** module, you can divide flows into modular units, making it easy to manage and reuse them. The moduleflows offers three key functionalities
 
-1. **Modularization** : It allows you to break down your flows into smaller, self-contained modules, making it easier to manage and understand complex workflows. You can determine which property to use within the “moduleflows in” node, and you have the flexibility to modify and apply that property within the "moduleflows" node.
+1. **Modularization** : It allows you to break down your flows into smaller, self-contained modules, making it easier to manage and understand complex workflows. You can determine which property to use within the "moduleflows in" node, and you have the flexibility to modify and apply that property within the "moduleflows" node.
 
 ![Untitled](img/Untitled.png)
 
